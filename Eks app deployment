@@ -1,0 +1,266 @@
+# Nidhusha
+
+
+Overview
+Solutions
+kubectl CLI
+Authentication
+Deployment
+Helm v3 CLI
+Authentication
+Deployment
+Kubernetes Terraform Provider
+Authentication
+Deployment
+Kubernetes Alpha Terraform Provider
+Helm v3 Terraform Provider
+Authentication
+Deployment
+Comparison Matrix
+References
+Overview
+This work-in-progress document explores some of the approaches to deploying an application into an EKS cluster.
+
+We cover two general approaches:
+
+using a CLI tool to deploy resources based on a manifest file
+using terraform/terraform enterprise to provision the application
+Solutions
+kubectl CLI
+kubectl is the official CLI tool for administration of k8s clusters. With kubectl we can describe resources in a JSON/YAML file, and deploy them using the kubectl apply command. Any kind of k8s resource (e.g. deployments, ingress, services) can be defined and deployed by kubectl.
+
+Authentication
+Connecting kubectl to an EKS cluster first requires the AWS CLI, and an IAM user with permission to access the cluster. We can then run aws eks update-kubeconfig to generate the necessary config files, which produces the following kubeconfig:
+
+$HOME/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://095B8D755614B6D62CE6B535C93793BA.yl4.eu-west-1.eks.amazonaws.com
+  name: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+contexts:
+- context:
+    cluster: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+    user: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+  name: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+current-context: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+kind: Config
+preferences: {}
+users:
+- name: arn:aws:eks:eu-west-1:754140508115:cluster/cmp-development-eks-test
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - --region
+      - eu-west-1
+      - eks
+      - get-token
+      - --cluster-name
+      - cmp-development-eks-test
+      command: aws
+      env: null
+Note that even if the user has the necessary IAM permissions, they will still need authorisation from the k8s RBAC model to perform actions within the cluster.
+
+Deployment
+The following sockshop.yaml file describes a deployment resource and a service resource. Running "kubectl apply -f sockshop.yaml" will deploy all the resources in a file to the cluster. Note that this operation is idempotent, so subsequent calls will not produce any additional change.
+
+sockshop.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: carts-db
+  labels:
+    name: carts-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: carts-db
+    spec:
+      containers:
+      - name: carts-db
+        image: mongo
+        ports:
+        - name: mongo
+          containerPort: 27017
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carts-db
+  labels:
+    name: carts-db
+  namespace: sock-shop
+spec:
+  ports:
+    # the port that this service should serve on
+  - port: 27017
+    targetPort: 27017
+  selector:
+    name: carts-db
+Note that this YAML file could also be split into multiple files:
+
+sockshop/cart-db-dep.yaml
+sockshop/cart-db-svc.yaml
+And deployed at the same time with "kubectl apply -f sockshop/"
+
+Helm v3 CLI
+Helm is a package manager for Kubernetes. Helm Charts are essentially a directory of k8s yaml files which get deployed together, while offering some additional features:
+
+Helm Charts are versioned
+A Helm Chart can depend on other Charts
+k8s yaml files within a Helm Chart can accept template values, providing flexibility
+Helm Charts can be hosted on a package repository
+Chart Releases can be rolled back to a previous version
+Authentication
+Helm requires a local configured copy of kubectl, no further authentication is required.
+
+Deployment
+$ tree sockshop-helm/
+sockshop-helm/                                                                                         
+├── Chart.yaml
+└── templates                                                                                          
+    ├── carts-db-dep.yaml                          
+    └── carts-db-svc.yaml
+                                                     
+1 directory, 3 files
+ 
+ 
+$ helm install sockshop sockshop-helm/             
+NAME: sockshop           
+LAST DEPLOYED: Wed Feb 19 14:30:17 2020            
+NAMESPACE: default       
+STATUS: deployed         
+REVISION: 1                                                                 
+TEST SUITE: None
+ 
+ 
+$ kubectl -n sock-shop get deploy,svc              
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE                                  
+deployment.extensions/carts-db   1/1     1            1           39s                                  
+ 
+NAME               TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)     AGE                            
+service/carts-db   ClusterIP   172.20.22.46   <none>        27017/TCP   40s
+Kubernetes Terraform Provider
+The Kubernetes Terraform Provider is a terraform plugin allowing you to schedule k8s resources into an actively running cluster.
+
+Authentication
+The provider supports k8s authentication either via the kube config file, in-cluster service account, or static credentials.
+
+Deployment
+The following terraform config describes a sample deployment and service resource being deployed using the terraform workflow (e.g. terraform init, terraform plan, terraform apply).
+
+main.tf
+provider "kubernetes" {}
+ 
+resource "kubernetes_deployment" "carts_db" {
+  metadata {
+    name = "carts-db"
+    labels = {
+      name = "carts-db"
+    }
+    namespace = "sock-shop"
+  }
+ 
+  spec {
+    replicas = 1
+ 
+    selector {
+      match_labels = {
+        name = "carts-db"
+      }
+    }
+ 
+    template {
+      metadata {
+        labels = {
+          name = "carts-db"
+        }
+      }
+ 
+      spec {
+        container {
+          name  = "carts-db"
+          image = "mongo"
+ 
+          port {
+            name           = "mongo"
+            container_port = 27017
+          }
+ 
+          volume_mount {
+            name       = "tmp-volume"
+            mount_path = "/tmp"
+          }
+        }
+ 
+        volume {
+          name = "tmp-volume"
+          empty_dir {
+            medium = "Memory"
+          }
+        }
+ 
+        node_selector = {
+          "beta.kubernetes.io/os" = "linux"
+        }
+      }
+    }
+  }
+}
+ 
+resource "kubernetes_service" "carts_db" {
+  metadata {
+    name = "carts-db"
+    labels = {
+      name = "carts-db"
+    }
+    namespace = "sock-shop"
+  }
+ 
+  spec {
+    port {
+      port        = 27017
+      target_port = 27017
+    }
+ 
+    selector = {
+      name = "carts-db"
+    }
+  }
+}
+Kubernetes Alpha Terraform Provider
+As of this writing, one limitation of the Kubernetes Terraform Provider is that it does not support some of the less commonly-deployed resources (e.g. pod security policy, custom resource definition). There is a new version of the Kubernetes terraform provider that allows deploying any resource - this is a significantly changed version that relies on Server-side Apply and requires a minimum k8s version of 1.17. It is currently in alpha.
+
+https://www.hashicorp.com/blog/[post]?post=deploy-any-resource-with-the-new-kubernetes-provider-for-hashicorp-terraform
+
+Helm v3 Terraform Provider
+The Helm Terraform Provider enables us to use terraform for deploying Helm Charts into a k8s cluster.
+
+Authentication
+The provider supports k8s authentication either via the kube config file or static credentials.
+
+Deployment
+This example uses the same helm chart from the "Helm v3 CLI" example above. Within the terraform config, we can reference the chart via a repository URL or local filesystem path:
+
+main.tf
+provider "helm" {}
+ 
+resource "helm_release" "sockshop" {
+  name       = "sockshop"
+  chart      = "sockshop-helm"
+  repository = "./"
+}
