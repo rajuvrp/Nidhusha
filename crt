@@ -1,0 +1,5 @@
+
+
+
+
+openssl req -newkey rsa:2048 -sha256 -nodes -keyout hk-north-np.key -out hk-north-np.csr -subj "/C=HK/L=Hong Kong/O=Standard Chartered Bank/OU=Retail Banking/CN=hklxadapp003.global.standardchartered.com/subjectAltName=DNS.1=hklxadapp003.global.standardchartered.com,DNS.2=hklxadapp004.global.standardchartered.com" 
