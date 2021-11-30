@@ -1,0 +1,91 @@
+# ======================== Elasticsearch Configuration =========================
+# ---------------------------------- Cluster ----------------------------------
+cluster.name: "rdc-rg-ccluster"
+
+# ---------------------------------- Data -------------------------------------
+path.data:
+- /apps/elastic/es6data
+
+
+# ---------------------------------- Logs -------------------------------------
+path.logs: /apps/elastic/elasticsearch/logs
+
+# ----------------------------------- Node -------------------------------------
+
+node.name: "rdc-rg-node01"
+node.master: true
+node.data: true
+search.remote.connect: true
+
+#---------------------------------- Network ------------------------------------
+network.host: "el1d1.hk.standardchartered.com"
+http.port: "9200"
+transport.tcp.port: "9300"
+
+#--------------------------------- X-Pack --------------------------------------
+xpack.ssl.key: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.key
+xpack.ssl.certificate: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.crt
+xpack.ssl.certificate_authorities: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.crt
+xpack.ssl.verification_mode: none
+
+xpack.security.enabled: true
+xpack.security.audit.enabled: true
+xpack.security.transport.ssl.enabled: true
+xpack.security.http.ssl.enabled: true
+
+xpack.monitoring.enabled: true
+xpack.graph.enabled: true
+xpack.watcher.enabled: true
+
+#xpack.security.authc.realms.native1.type: native
+#xpack.security.authc.realms.native1.order: 0
+
+xpack:
+  security:
+    authc:
+      realms:
+        native1:
+          type: native
+          order: 0
+        ldap_to_ad:
+          type: ldap
+          order: 1
+          enabled: true
+          url: ["ldaps://hkmgadom112.zone1.scb.net:636","ldaps://hkjumdom112.zone1.scb.net:636"]
+          ssl.verification_mode: full
+          load_balance.type: failover
+          #bind_dn: "CN=svc.rdcldapes.001,OU=Service,OU=Accounts,OU=ITSC,DC=zone1,DC=scb,DC=net"
+          user_dn_templates:
+            - "cn={0},OU=User,OU=Accounts,OU=ITSC,DC=zone1,DC=scb,DC=net"
+            - "cn={0},OU=Generic,OU=Accounts,OU=ITSC,DC=zone1,DC=scb,DC=net"
+          #user_search.base_dn: "OU=User,OU=Accounts,OU=ITSC,DC=zone1,DC=scb,DC=net"
+          #user_search.attribute: sAMAccountName
+          group_search.base_dn: "OU=Application,OU=Groups,OU=ITSC,DC=zone1,DC=scb,DC=net"
+          timeout.tcp_connect: 30s
+          timeout.tcp_read: 30s
+          timeout.ldap_search: 30s
+
+# --------------------------------- Discovery ---------------------------------
+discovery.zen.ping.unicast.hosts:
+  - "el1d1.hk.standardchartered.com:9300"
+  - "el1d2.hk.standardchartered.com:9300"
+  - "el1d3.hk.standardchartered.com:9300"
+discovery.zen.minimum_master_nodes: 2
+
+bootstrap.memory_lock: true
+discovery.zen.ping_timeout: 3s
+discovery.zen.fd.ping_interval: 1s
+discovery.zen.fd.ping_timeout: 30s
+discovery.zen.fd.ping_retries: 3
+discovery.zen.commit_timeout: 30s
+discovery.zen.join_timeout: 60s
+
+#Remote Cluster
+reindex.remote.whitelist: "hklpapibk004.hk.standardchartered.com:9200,hklpapibk006.hk.standardchartered.com:9200,hklpapibk007.hk.standardchartered.com:9200"
+reindex.ssl.certificate: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.crt
+reindex.ssl.key: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.key
+reindex.ssl.certificate_authorities: /apps/elastic/elasticsearch/config/rdc-prd-elk-12-nodes.crt
+
+
+s3.client.default.endpoint: "rbchannels.mhcp-b.hk.sc.net"
+s3.client.default.protocol: "https"
