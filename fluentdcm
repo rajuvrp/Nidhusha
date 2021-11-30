@@ -1,0 +1,130 @@
+apiVersion: v1
+data:
+  filter-post-retag-apps.conf: "<filter kubernetes.**>\n  @type record_transformer\n
+    \ enable_ruby\n  <record>\n    kubernetes_namespace_name ${record[\"kubernetes\"]
+    && record[\"kubernetes\"][\"namespace_name\"] ? record[\"kubernetes\"][\"namespace_name\"]
+    : \"undefined_namespace_name\"}\n    kubernetes_pod_name ${record[\"kubernetes\"]
+    && record[\"kubernetes\"][\"pod_name\"] ? record[\"kubernetes\"][\"pod_name\"]
+    : \"undefined_pod_name\"}\n    kubernetes_container_name ${record[\"kubernetes\"]
+    && record[\"kubernetes\"][\"container_name\"] ? record[\"kubernetes\"][\"container_name\"]
+    : \"undefined_container_name\"}\n  </record>\n</filter>\n\n<match kubernetes.**>
+    # match all kubernetes container logs\n  @type rewrite_tag_filter\n  @label @OUTPUT\n
+    \ #rewriterule1 kubernetes_namespace_name ^openshift$ output_ops_tag\n  #rewriterule2
+    kubernetes_namespace_name ^openshift-(sdn|console|infra|logging|monitoring|node|web-console)$
+    output_ops_tag\n  #rewriterule3 kubernetes_namespace_name ^kube-(system|public)$
+    output_ops_tag\n  #rewriterule4 kubernetes_namespace_name ^default$ output_ops_tag\n
+    \ #rewriterule6 message .+ output_ops_tag\n  rewriterule1 kubernetes_namespace_name
+    ^rdc-ame-(ibank|tools|ob|csl)$ output_tag\n  rewriterule2 kubernetes_namespace_name
+    ^rdc-in-ibank$ output_tag\n  rewriterule3 kubernetes_namespace_name ^rdc-hk-openapi$
+    output_tag\n  rewriterule4 kubernetes_namespace_name ^rdc-hk-onboarding$ output_tag\n
+    \ rewriterule5 kubernetes_namespace_name ^rdc-sg-csl$ output_tag\n  rewriterule6
+    kubernetes_namespace_name ^rdc-hk-ibank$ output_tag\n  rewriterule7 kubernetes_namespace_name
+    ^rdc-cn-ibank$ output_tag\n  rewriterule8 kubernetes_namespace_name ^moneythor-sg-prod$
+    output_tag\n  rewriterule9 kubernetes_namespace_name ^rdc-gbl-ofp$ output_tag\n
+    \ rewriterule10 kubernetes_namespace_name ^rdc-id-ibank$ output_tag\n  rewriterule11
+    kubernetes_namespace_name ^rdc-ae-ibank$ output_tag\n  rewriterule12 kubernetes_namespace_name
+    ^rdc-bn-ibank$ output_tag\n  rewriterule13 kubernetes_namespace_name ^rdc-vn-ibank$
+    output_tag\n  rewriterule14 kubernetes_namespace_name ^rdc-my-ibank$ output_tag\n
+    \ rewriterule15 kubernetes_namespace_name ^rdc-bd-ibank$ output_tag\n  rewriterule16
+    kubernetes_namespace_name ^rdc-bh-ibank$ output_tag\n  rewriterule17 kubernetes_namespace_name
+    ^rdc-jo-ibank$ output_tag\n  rewriterule18 kubernetes_namespace_name ^rdc-lk-ibank$
+    output_tag\n  rewriterule19 kubernetes_namespace_name ^rdc-np-ibank$ output_tag\n
+    \ rewriterule20 kubernetes_namespace_name ^hkmapns-dr$ output_tag\n  rewriterule21
+    kubernetes_namespace_name ^rb-api-services-dr$ output_tag\n  rewriterule22 kubernetes_namespace_name
+    ^fx-rate-api$ output_tag\n  rewriterule23 kubernetes_namespace_name ^rdc-sg-api-dr$
+    output_tag\n  rewriterule24 kubernetes_namespace_name ^rdc-hk-ptnr$ output_tag\n
+    \ rewriterule25 kubernetes_namespace_name ^rdc-sg-api$ output_tag\n  rewriterule26
+    kubernetes_namespace_name ^rdc-gbl-adp$ output_tag\n  rewriterule27 kubernetes_namespace_name
+    ^rdc-my-cemscvm$ output_tag \n  rewriterule28 kubernetes_namespace_name ^rdc-ae-cemscvm$
+    output_tag \n  rewriterule29 kubernetes_namespace_name ^rdc-ke-cems$ output_tag
+    \n  rewriterule30 kubernetes_namespace_name ^rdc-my-cems$ output_tag \n  rewriterule31
+    kubernetes_namespace_name ^rdc-glb-cemsctom$ output_tag\n  rewriterule32 kubernetes_namespace_name
+    ^rdc-pk-ibank$ output_tag\n  rewriterule33 kubernetes_namespace_name ^rdc-asia-csl$
+    output_tag\n  rewriterule34 kubernetes_namespace_name ^rdc-in-cems$ output_tag
+    \n  rewriterule35 kubernetes_namespace_name ^rdc-cn-cems$ output_tag \n  rewriterule36
+    kubernetes_namespace_name ^rdc-sg-cems$ output_tag \n  rewriterule37 kubernetes_namespace_name
+    ^rdc-ae-cems$ output_tag \n  rewriterule38 kubernetes_namespace_name ^rdc-hk-cems$
+    output_tag \n  rewriterule39 kubernetes_namespace_name ^rdc-mepa-cems$ output_tag\n
+    \ rewriterule40 kubernetes_namespace_name ^rdc-hk-csl$ output_tag\n  rewriterule41
+    kubernetes_namespace_name ^wma-hk-pii$ output_tag\n  rewriterule42 kubernetes_namespace_name
+    ^wma-bpa-simulation-prod$ output_tag\n  rewriterule43 kubernetes_namespace_name
+    ^rdc-id-cems$ output_tag\n  rewriterule44 kubernetes_namespace_name ^rdc-gbl-gla$
+    output_tag\n  rewriterule45 kubernetes_namespace_name ^wma-dtcsg$ output_tag\n
+    \ rewriterule46 kubernetes_namespace_name ^rdc-gbl-martech$ output_tag\n  rewriterule47
+    kubernetes_namespace_name ^rdc-gbl-inboundivr$ output_tag\n  rewriterule48 kubernetes_namespace_name
+    ^rdc-tw-cemscvm$ output_tag\n  rewriterule49 kubernetes_namespace_name ^cpbb-ame-csl-v4$
+    output_tag\n  rewriterule50 kubernetes_namespace_name ^cpbb-ame-ekg$ output_tag\n
+    \ rewriterule51 kubernetes_namespace_name ^cpbb-ame-ui-v4$ output_tag\n  rewriterule52
+    kubernetes_namespace_name ^cpbb-ame-ciam$ output_tag\n  rewriterule53 kubernetes_namespace_name
+    ^rdc-lms$ output_tag\n</match>\n"
+  fluent.conf: |2
+
+    #@include configs.d/openshift/system.conf
+
+    <system>
+      log_level debug
+    </system>
+
+
+    @include configs.d/openshift/input-pre-*.conf
+    @include configs.d/dynamic/input-docker-*.conf
+    @include configs.d/dynamic/input-syslog-*.conf
+    @include configs.d/openshift/input-post-*.conf
+
+    <label @INGRESS>
+      @include configs.d/openshift/filter-pre-*.conf
+      @include configs.d/openshift/filter-retag-journal.conf
+      @include configs.d/openshift/filter-k8s-meta.conf
+      @include configs.d/openshift/filter-kibana-transform.conf
+      @include configs.d/openshift/filter-k8s-flatten-hash.conf
+      @include configs.d/openshift/filter-k8s-record-transform.conf
+      @include configs.d/openshift/filter-syslog-record-transform.conf
+      @include configs.d/openshift/filter-viaq-data-model.conf
+      @include configs.d/user/filter-post-retag-apps.conf
+      @include configs.d/openshift/filter-post-*.conf
+    </label>
+    <label @OUTPUT>
+      @include configs.d/openshift/output-pre-*.conf
+      @include configs.d/user/output-operations.conf
+      @include configs.d/user/output-applications.conf
+      #@include configs.d/user/secure-forward.conf
+
+    </label>
+  output-applications.conf: |
+    <match output_tag>
+       @type copy
+       @include ../user/secure-forward.conf
+    </match>
+  output-operations.conf: "<match output_ops_tag>\n   @type copy\n  <store> \n    @type
+    elasticsearch \n    log_level debug \n    host \"#{ENV['OPS_HOST']}\" \n    port
+    \"#{ENV['OPS_PORT']}\" \n    scheme https \n    ssl_version TLSv1_2 \n    index_name
+    .operations \n\n    user fluentd \n    password changeme1 \n\n    client_key \"#{ENV['OPS_CLIENT_KEY']}\"
+    \n    client_cert \"#{ENV['OPS_CLIENT_CERT']}\" \n    ca_file \"#{ENV['OPS_CA']}\"
+    \n\n    type_name com.redhat.ocp.ops \n\n    reload_connections false \n    reload_on_failure
+    false \n    flush_interval 5s \n    max_retry_wait 300 \n    disable_retry_limit
+    true \n    buffer_queue_limit \"#{ENV['BUFFER_QUEUE_LIMIT']}\" \n    buffer_chunk_limit
+    \"#{ENV['BUFFER_SIZE_LIMIT']}\" \n    request_timeout 2147483648 \n  </store>
+    \n\n</match>\n"
+  secure-forward.conf: "<store>\n@type secure_forward\n\nself_hostname pod-${hostname}\nshared_key
+    1234567\n\nsecure yes\n\nca_cert_path /etc/fluent/keys/sc_ca_cert\nca_private_key_path
+    /etc/fluent/keys/sc_ca_private_key\nca_private_key_passphrase mysecurepassword\n\n<server>\n
+    \ host 10.21.214.214\n  port 5588\n  reload_connections false \n  reload_on_failure
+    false \n  flush_interval 5s \n  max_retry_wait 300\n  disable_retry_limit true
+    \n  buffer_queue_limit \"#{ENV['BUFFER_QUEUE_LIMIT']}\" \n  buffer_chunk_limit
+    \"#{ENV['BUFFER_SIZE_LIMIT']}\"\n</server>\n<server>\n  host 10.21.214.216\n  port
+    5588\n  reload_connections false \n  reload_on_failure false \n  flush_interval
+    5s \n  max_retry_wait 300\n  disable_retry_limit true \n  buffer_queue_limit \"#{ENV['BUFFER_QUEUE_LIMIT']}\"
+    \n  buffer_chunk_limit \"#{ENV['BUFFER_SIZE_LIMIT']}\"\n</server>\n<server>\n
+    \ host 10.21.214.217\n  port 5588\n  reload_connections false \n  reload_on_failure
+    false \n  flush_interval 5s \n  max_retry_wait 300\n  disable_retry_limit true
+    \n  buffer_queue_limit \"#{ENV['BUFFER_QUEUE_LIMIT']}\" \n  buffer_chunk_limit
+    \"#{ENV['BUFFER_SIZE_LIMIT']}\"\n</server>\n</store>\n"
+  throttle-config.yaml: ""
+kind: ConfigMap
+metadata:
+  creationTimestamp: 2019-10-08T03:44:15Z
+  name: logging-fluentd
+  namespace: openshift-logging
+  resourceVersion: "259917984"
+  selfLink: /api/v1/namespaces/openshift-logging/configmaps/logging-fluentd
+  uid: e6222dd8-e97d-11e9-a360-005056b50bf0
