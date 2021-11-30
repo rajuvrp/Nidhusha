@@ -1,0 +1,60 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/balance: roundrobin
+    haproxy.router.openshift.io/timeout: 180s
+  creationTimestamp: 2021-05-28T07:20:52Z
+  labels:
+    route: internal
+  name: ae-bsoi-ss-pt
+  namespace: rdc-ae-ibank-pt
+  resourceVersion: "375910436"
+  selfLink: /apis/route.openshift.io/v1/namespaces/rdc-ae-ibank-pt/routes/ae-bsoi-ss-pt
+  uid: 3be37a42-bf85-11eb-8764-0050569c2867
+spec:
+  host: rdc-ae-ibank-pt-ae-bsoi-ss.int.apps.rdc-np.ocp.standardchartered.com
+  port:
+    targetPort: 8443-tcp
+  tls:
+    destinationCACertificate: |-
+      -----BEGIN CERTIFICATE-----
+      MIIECTCCAvGgAwIBAgIJAJNSQMJVYdw7MA0GCSqGSIb3DQEBBQUAMGAxCzAJBgNV
+      BAYTAlNHMQswCQYDVQQIEwJTRzELMAkGA1UEBxMCU0cxCzAJBgNVBAoTAlNDMRcw
+      FQYDVQQLEw5SREMgRm91bmRhdGlvbjERMA8GA1UEAxMISUJhbmtpbmcwHhcNMTcw
+      NTMxMDkwMDM3WhcNMjcwNTI5MDkwMDM3WjBgMQswCQYDVQQGEwJTRzELMAkGA1UE
+      CBMCU0cxCzAJBgNVBAcTAlNHMQswCQYDVQQKEwJTQzEXMBUGA1UECxMOUkRDIEZv
+      dW5kYXRpb24xETAPBgNVBAMTCElCYW5raW5nMIIBIjANBgkqhkiG9w0BAQEFAAOC
+      AQ8AMIIBCgKCAQEAzCg1hgnXx0SkkkBcDk/c+9OjaAH/3hBzeXU138OjGzD1WDks
+      8USKrUMqL4gxxckPL7k+44Kku6zi9y+eJYpg1bcumSxWEhzawylN1J/6g5HKjmnB
+      Lx00ZVxf5ZTYF1zTWaiaAP9l4AWPBYxos9RQLkZCyGA6+ocCQlowyGPCa0rFixkG
+      MXFQfHsBGw/SNx0ET6eVTBGSD/FyLs+usv+up6W4vU77Y/B/zMzshXI6fAhcVOrA
+      qBlXA+Vsme1/YCUdiT2hk+BUMQI8JmREqI9nxtZj0zp6vwD4DQncGwEQwEnwJ6wD
+      xH7rRWT2/Rlrv+bqy+oup9BedjXw1O4OHGDWKQIDAQABo4HFMIHCMB0GA1UdDgQW
+      BBSc7KKH0WXxA4iLVGmJ8S4Ih7bxsDCBkgYDVR0jBIGKMIGHgBSc7KKH0WXxA4iL
+      VGmJ8S4Ih7bxsKFkpGIwYDELMAkGA1UEBhMCU0cxCzAJBgNVBAgTAlNHMQswCQYD
+      VQQHEwJTRzELMAkGA1UEChMCU0MxFzAVBgNVBAsTDlJEQyBGb3VuZGF0aW9uMREw
+      DwYDVQQDEwhJQmFua2luZ4IJAJNSQMJVYdw7MAwGA1UdEwQFMAMBAf8wDQYJKoZI
+      hvcNAQEFBQADggEBAFAvRd9woCJyXcrvH6cLskQ+rp1S2tFKpCov3G8YLHRT82x/
+      OF6NQ1gjEoEPwRuqw1duPW3G2QlIhJbyl4njaz9oLVPpe/HVNv7VcBFfQwNP706S
+      oAyI30qsTniOfiXDoRiSv9nbbcMHuqKGKimyntK//oLwns3x0digR+uPrqdWEiq5
+      uZ9scKFubqqg2XtK1NXvVxoceYDYo14RXKqT1PvIkAgbrqeXDxRjTZ5VWTxIZrW8
+      8gd1Jpz0jCs1LeKxZZPdvt6Jezb0fvxPMTgHrtLmGmFTYtjfLIcEtJ7GPA2gdse4
+      3oE38nx6z26lgCnBDZwabRp99zybi+jnsKlVgEU=
+      -----END CERTIFICATE-----
+    insecureEdgeTerminationPolicy: Allow
+    termination: reencrypt
+  to:
+    kind: Service
+    name: ae-bsoi-ss-pt
+    weight: 100
+  wildcardPolicy: None
+status:
+  ingress:
+  - conditions:
+    - lastTransitionTime: 2021-05-28T07:20:52Z
+      status: "True"
+      type: Admitted
+    host: rdc-ae-ibank-pt-ae-bsoi-ss.int.apps.rdc-np.ocp.standardchartered.com
+    routerName: router-int
+    wildcardPolicy: None
