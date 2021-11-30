@@ -1,0 +1,87 @@
+apiVersion: network.openshift.io/v1
+kind: EgressNetworkPolicy
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"network.openshift.io/v1","kind":"EgressNetworkPolicy","metadata":{"annotations":{},"name":"hk-egress-network-policy","namespace":"rdc-hk-ibank"},"spec":{"egress":[{"ports":[{"port":5501,"protocol":"TCP"}],"to":{"cidrSelector":"10.192.230.0/24"},"type":"Allow"},{"to":{"cidrSelector":"10.20.184.0/24"},"type":"Allow"},{"ports":[{"port":50004,"protocol":"TCP"},{"port":50005,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.187.0/24"},"type":"Allow"},{"ports":[{"port":8010,"protocol":"TCP"},{"port":8500,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.194.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.195.0/24"},"type":"Allow"},{"ports":[{"port":1414,"protocol":"TCP"},{"port":50001,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.202.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"},{"port":543,"protocol":"TCP"},{"port":8443,"protocol":"TCP"},{"port":8463,"protocol":"TCP"},{"port":8483,"protocol":"TCP"},{"port":8643,"protocol":"TCP"},{"port":9002,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.220.0/24"},"type":"Allow"},{"ports":[{"port":1414,"protocol":"TCP"}],"to":{"cidrSelector":"10.20.230.0/24"},"type":"Allow"},{"ports":[{"port":25,"protocol":"TCP"},{"port":465,"protocol":"TCP"},{"port":5552,"protocol":"TCP"},{"port":5555,"protocol":"TCP"},{"port":5559,"protocol":"TCP"},{"port":7760,"protocol":"TCP"},{"port":7761,"protocol":"TCP"},{"port":7762,"protocol":"TCP"},{"port":8583,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.130.0/24"},"type":"Allow"},{"ports":[{"port":1622,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.188.0/24"},"type":"Allow"},{"to":{"cidrSelector":"10.21.196.0/24"},"type":"Allow"},{"ports":[{"port":1622,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.207.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.208.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"},{"port":1636,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.213.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"},{"port":5563,"protocol":"TCP"},{"port":8243,"protocol":"TCP"}],"to":{"cidrSelector":"10.23.162.0/24"},"type":"Allow"},{"ports":[{"port":8010,"protocol":"TCP"}],"to":{"cidrSelector":"10.23.2.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"},{"port":5551,"protocol":"TCP"},{"port":7722,"protocol":"TCP"},{"port":7721,"protocol":"TCP"},{"port":7720,"protocol":"TCP"}],"to":{"cidrSelector":"10.23.94.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"}],"to":{"cidrSelector":"10.239.9.0/24"},"type":"Allow"},{"to":{"cidrSelector":"10.68.18.0/24"},"type":"Allow"},{"ports":[{"port":9000,"protocol":"TCP"}],"to":{"cidrSelector":"218.103.64.0/24"},"type":"Allow"},{"ports":[{"port":6740,"protocol":"TCP"},{"port":6741,"protocol":"TCP"},{"port":6742,"protocol":"TCP"},{"port":6780,"protocol":"TCP"},{"port":6781,"protocol":"TCP"},{"port":6782,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.157.0/24"},"type":"Allow"},{"ports":[{"port":6710,"protocol":"TCP"},{"port":6711,"protocol":"TCP"},{"port":6712,"protocol":"TCP"},{"port":6720,"protocol":"TCP"},{"port":6721,"protocol":"TCP"},{"port":6722,"protocol":"TCP"}],"to":{"cidrSelector":"10.21.198.0/24"},"type":"Allow"},{"ports":[{"port":443,"protocol":"TCP"}],"to":{"cidrSelector":"10.4.33.0/24"},"type":"Allow"},{"to":{"cidrSelector":"0.0.0.0/0"},"type":"Deny"}]}}
+  creationTimestamp: 2020-08-21T02:24:25Z
+  name: hk-egress-network-policy
+  namespace: rdc-hk-ibank
+  resourceVersion: "139142212"
+  selfLink: /apis/network.openshift.io/v1/namespaces/rdc-hk-ibank/egressnetworkpolicies/hk-egress-network-policy
+  uid: 6e9a16f7-e355-11ea-b5c4-0050569c0473
+spec:
+  egress:
+  - to:
+      cidrSelector: 10.192.230.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.184.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.187.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.194.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.195.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.202.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.220.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.20.230.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.130.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.188.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.196.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.207.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.208.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.213.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.23.162.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.23.2.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.23.94.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.239.9.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.68.18.0/24
+    type: Allow
+  - to:
+      cidrSelector: 218.103.64.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.157.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.21.198.0/24
+    type: Allow
+  - to:
+      cidrSelector: 10.4.33.0/24
+    type: Allow
+  - to:
+      cidrSelector: 0.0.0.0/0
+    type: Deny
+
