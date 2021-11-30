@@ -1,0 +1,158 @@
+# Source logs to aggregator
+
+#Step -1 Common
+<source>
+  @type monitor_agent
+  @id monitor_agent_input
+  port 24220
+</source>
+<source>
+  @type forward
+  bind 0.0.0.0
+  port 24224
+</source>
+<source>
+  @type prometheus_tail_monitor
+</source>
+#count the number of incoming records per tag
+<filter HKLPASIBK004.**>
+  @type prometheus
+  <metric>
+    name fluentd_input_status_num_records_total
+    type counter
+    desc The total number of incoming records
+    <labels>
+      tag ${tag}
+      hostname HKLPASIBK004
+    </labels>
+  </metric>
+</filter>
+#expose metrics in prometheus format
+<source>
+  @type prometheus
+  bind 0.0.0.0
+  port 24231
+  metrics_path /metrics
+</source>
+<source>
+  @type prometheus_output_monitor
+  interval 10
+  <labels>
+    hostname HKLPASIBK004
+  </labels>
+</source>
+#Step-2 Common
+<source>
+  @type debug_agent
+  @id debug_agent_input
+  bind 127.0.0.1
+  port 24230
+</source>
+
+#Step-3 Common
+<source>
+@type forward
+<transport tls>
+   cert_path /apps/fluentd/conf/ca_cert.pem
+   private_key_path /apps/fluentd/conf/ca_key.pem
+   private_key_passphrase mysecurepassword
+</transport>
+<security>
+   self_hostname HKLPASIBK004
+   shared_key 1234567
+</security>
+bind 0.0.0.0
+port 5588
+</source>
+
+#Step-4 aggregator
+<filter output_ops_tag**>
+  @type parser
+  format json
+  key_name message
+  reserve_data true
+</filter>
+
+<system>
+<log>
+  format json
+</log>
+</system>
+
+
+################################ kubernetes_journal #######################
+
+<match output**>
+    @id elasticsearch
+    @type elasticsearch_dynamic
+    index_name ${record['kubernetes']['namespace_name']}.${Time.parse(record['@timestamp']).getutc.strftime(@logstash_dateformat)}
+    #index_name ${record['kubernetes']['namespace_name']}-alias
+    type_name com.redhat.viaq.common
+    include_tag_key true
+    hosts 10.21.214.214:9200,10.21.214.216:9200,10.21.214.217:9200
+    port 9200
+    user elasticfluentd
+    password rft@2020
+    client_cert /apps/fluentd/conf/rdc-prd-elk-12-nodes.crt
+    client_key /apps/fluentd/conf/rdc-prd-elk-12-nodes.key
+    scheme https
+    ssl_verify false
+    ssl_version TLSv1_2
+    target_index_key index_name
+    slow_flush_log_threshold 600
+    reconnect_on_error true
+    reload_on_failure true
+    reload_connections false
+   <buffer>
+    @type file
+    path /apps/fluentd/logs/ocp.buf
+    flush_mode interval
+    retry_type exponential_backoff
+    flush_interval 10s
+    flush_thread_count 14
+    flush_thread_interval 5.0
+    flush_thread_burst_interval 1.0
+    retry_forever
+    retry_wait 15s
+    request_timeout 20s
+    retry_max_interval 600
+    chunk_limit_size 25M
+    queue_limit_length 15000
+    overflow_action throw_exception
+   </buffer>
+</match>
+
+<match output_**>
+@type rewrite_tag_filter
+<rule>
+    key viaq_index_name
+    pattern ^(.+)$
+   tag $1
+</rule>
+@id forward_output
+  <store>
+    @type prometheus
+    <metric>
+      name fluentd_output_status_num_records_total
+      type counter
+      desc The total number of outgoing records
+      <labels>
+        tag ${tag}
+        hostname HKLPASIBK004
+      </labels>
+    </metric>
+  </store>
+</match>
+
+#Step-5 Aggr
+#<match **>
+#  @type file
+#  time_slice_format %Y%m%d
+#  time_slice_wait 5m
+#  time_format %Y%m%dT%H%M%S%z
+#  compress gzip
+#  append true
+#  num_threads 10
+#  path /apps/fluentd/logs/HKLPASIBK004.other
+#</match>
+
