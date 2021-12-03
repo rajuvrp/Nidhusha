@@ -1,0 +1,214 @@
+Network segmentation
+
+•	1 Why network segmentation
+•	2 OpenShift Software Defined Network
+•	3 OpenShift subnet calculation
+•	4 CISCO ACI EPG policy 
+o	4.1 Within the CIO EPG 
+	4.1.1 Workers nodes to Master nodes
+	4.1.2 Workers nodes to Master nodes (traffic both way)
+o	4.2 Ingress traffic for API / Application access 
+	4.2.1 Outside traffic to the API server of OpenShift Platform
+	4.2.2 Outside traffic to the microservice pods running inside the OpenShift Platform
+o	4.3 Traffic for OpenShift Ecosystem 
+	4.3.1 AquaSec enforcer
+	4.3.2 ServiceNow CMDB
+o	4.4 Core Infrastructure service
+•	5 Infoblox configuration
+•	6 Terraforming
+Why network segmentation
+Network segmentation is an architectural approach that divides a corporate network into smaller subnets, allowing several benefits:
+•	Improved performance - Fewer hosts within subnet minimise broadcast traffic, hence results in deterministic performance.
+•	Improved security - Lateral attack from an exploited host is contained within that subnet, and not affect the entire corporate network.
+•	Zero trust - No hosts are trusted by default unless explicitly allowed. This prevents any perimeter breach from gaining access to sensitive data which they aren't allowed to.
+Analogy - Network segmentation is like a submarine. By compartmentalising the vessel, you are less likely to sink !
+ 
+OpenShift Software Defined Network
+OpenShift Container Platform (OCP) is a platform designed to run/orchestrate container workload across a few machines (cluster nodes). OpenShift deploy a private Software Defined Network (SDN) using OpenVswitch CNI. This provide a flat overlay network across a cluster of "nodes". All kubernetes pods are randomly assigned an IP address on this SDN, and they are non-routable.
+When a pod communicate with another pod living in another cluster node, it will use vxlan0 tag to encapsulate the traffic. On each of the cluster node, the vxlan virtual interface continuously send out UDP 4789 broadcast traffic across the campus network to "probe" for it's next destination.
+ 
+VXLAN tagging
+When an OpenShift Cluster is deployed on a campus network without any network segmentation, It generates a lot of encapsulated broadcast traffic which are not useful to it's neighbouring non-Openshift machines that reside in the same network. As you deploy more OpenShift clusters into campus network, security network tools like vArmour are now blinded by the overwhelming encapsulated traffic. 
+To gain an insight of the encapsulation, security team usually will ask to switch on Netflow and IPFix in OpenVswitch. This has a downside of performance penalty in the overlay network.
+In order to prevent above scenarios, OpenShift clusters need to be deploy on dedicated network subnets
+# ip a sh vxlan_sys_4789
+6: vxlan_sys_4789: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 65000 qdisc noqueue master ovs-system state UNKNOWN group default qlen 1000
+    link/ether 6e:f3:b5:ce:62:ec brd ff:ff:ff:ff:ff:ff
+
+# iptables -L OPENSHIFT-FIREWALL-ALLOW
+Chain OPENSHIFT-FIREWALL-ALLOW (1 references)
+target     prot opt source               destination        
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:4789 /* VXLAN incoming */
+ACCEPT     all  --  anywhere             anywhere             /* from SDN to localhost */
+ACCEPT     all  --  anywhere             anywhere             /* from docker to localhost */
+OpenShift subnet calculation
+How large is our private SDN networks, and what is the maximum CIDR block we need per subnet on the campus network ?
+A typical OpenShift network is assigned a private range of 
+openshift_portal_net          - 192.168.0.0/17
+osm_cluster_network_cid  -  110.128.0.0/16
+osm_host_subnet_length   - /23
+So we can have max of 65536/512 = 128 nodes per cluster
+A CIDR block of /22 gives us 1022 usable ipaddr. That means the number of cluster we can deploy per subnet = 1022 / 128 = ~8
+
+Cisco ACI and OpenShift architectural design
+Cisco Endpoint Groups (EPG) are software defined network that maps policy logics to an applications group. It remove the traditional way of using VLAN or network constructs to apply forwarding rules.
+With EPG, we can logically group Financial Market OpenShift clusters into a CIO business group (labelled as FM EPG), without having the need to stretch a physical VLAN or subnet construct across multiple datacenters. With EPG endpoint, inbound/outbound policies can be applied according to business logics.
+ 
+
+CISCO ACI EPG policy
+By default, all CIO EPG have a restrictive (zero-trust) network policy. Traffic have to be explicitly open to allow communications in/out of the EPG group.
+Within the CIO EPG
+Workers nodes to Master nodes
+Within the EPG, all workers' kubelet has to communicate with the cluster control plane (etcd, apiserver) for normal operation. 
+
+Protocol	Port	Description
+TCP	2379 , 2380	etcd server, peer, metrics port
+	6443	Kubernetes API
+
+Workers nodes to Master nodes (traffic both way)
+Protocol	Port	Description
+TCP
+
+	1936	Metrics
+	9000 - 9999	Prometheus Node exporter – 9100-9101
+Cluster Version Operator - 9099
+	10250 – 10259	Kubernetes reserved port
+	10256	openshift-sdn (OpenVswitch)
+UDP	4789 , 6081	Vxlan and Geneve
+	9000 - 9999	Host level services
+Prometheus Node exporter – 9100-9101
+TCP/UDP	30000 - 32767	Kubernetes node port
+ICMP	N/A	Network connectivity tests
+
+Ingress traffic for API / Application access
+This traffic is usually from a pair of external load-balancer that points to where the API / Application ingress load balancer runs. It can be any of the worker nodes.
+Note: The external load-balancer – can be F5, or haproxy that we provision outside the cluster.
+
+Outside traffic to the API server of OpenShift Platform
+	Layer 4 load-balancing - with Raw TCP, SSL passthrough, SSL bridge mode. If bridge mode, you must enable Server Name Indication (SNI) for the API routes
+	Stateless algorithm - No sticky session
+Protocol	Port	Description
+HTTPS / TLS with SNI	6443	Kubernetes API server
+HTTPS / TLS with SNI	22623	Machine Config server
+
+Outside traffic to the microservice pods running inside the OpenShift Platform
+	Layer 4 load balancing - with Raw TCP, SSL passthrough, SSL bridge mode. If bridge mode, you must enable Server Name Indication (SNI) for the API routes
+	Connection-based or session-based persistence is needed.
+Protocol	Port	Description
+HTTPS	443	Microservice pods
+HTTP	80	Microservice pods
+
+Traffic for OpenShift Ecosystem
+AquaSec enforcer
+
+Protocol	Port	Description
+TCP	8443	One way traffic from Enforcer in worker node to Aqua gateway load balancer hosted in AWS.
+		
+
+ServiceNow CMDB
+ServiceNow discovery tool which is kubernetes-aware, will likely does it's data collection via the cluster API server.
+OpenShift Platform has turned off remote SSH connectivity, hence any traditional discovery via SSH is not possible.
+
+Splunk SIEM
+To collect kubernetes system components logs, and applications (containers) logs, Fluentd container runs as a daemonSets on all nodes, and does the logs collection.
+The logs are send to the Splunk indexer via HEC (HTTP Event Collector) output plugin.
+Protocol	Port	Destination	Description
+TCP	8088	UK - uklvapapp481.gdc.standardchartered.com
+HK - hklvapapp695.hk.standardchartered.com
+One way traffic to Splunk HEC host
+
+
+			
+Core Infrastructure service
+Essential services that OpenShift depends on to function properly
+	NTP / Timekeeper grandmaster
+	DNS
+	DHCP
+	TFTP service
+	LDAP
+	Artifactory for image registry
+
+Protocol	Port	Destination	Description
+TCP	53	Infoblox appliances	DNS queries for SCB domains
+	67	Infoblox appliances	Bootp next server and filename
+	68	Infoblox appliances	DHCP server communication to client
+	389	hkjumdom109.zone1.scb.net/dc=zone1,dc=scb,dc=net?cn
+ukpkrdom103.zone1.scb.net/dc=zone1,dc=scb,dc=net?cn
+LDAP authentication to SCB AD domain controller (zone1.scb.net)
+	443	release:
+cache.artifactory.global.standardchartered.com (geolocation)
+artifactory.global.standardchartered.com
+hk-prod.artifactory.global.standardchartered.com
+production:
+production-cache.artifactory.global.standardchartered.com (geolocation)
+docker-production.artifactory.global.standardchartered.com
+hk-docker-prod.artifactory.global.standardchartered.com
+SCB Container image registry
+	123	Infoblox appliances	NTP timesource
+	319	PTP grandmaster/Boundary clock 	PTP message
+	320	PTP grandmaster/Boundary clock 	PTP message
+	10080	uklvadapp370.uk.standardchartered.com
+Matchbox HTTP endpoint for OpenShift Bootstrapping
+	10081	uklvadapp370.uk.standardchartered.com
+Matchbox gRPC endpoint for OpenShift Bootstrapping
+	10080	hklvadapp286.hk.standardchartered.com
+Matchbox HTTP endpoint for OpenShift Bootstrapping
+	10081	hklvadapp286.hk.standardchartered.com
+Matchbox gRPC endpoint for OpenShift Bootstrapping
+			
+UDP	53	Infoblox appliances	DNS queries for SCB domains with DNSSEC capabilities and future proof for IPv6
+	67	Infoblox appliances	Bootp next server and filename
+	68	Infoblox appliances	DHCP server communication to client
+	69	matchbox	TFTP service (to Infoblox appliance)
+	123	Infoblox appliances	NTP service (to infoblox appliance)
+	389	hkjumdom109.zone1.scb.net/dc=zone1,dc=scb,dc=net?cn
+ukpkrdom103.zone1.scb.net/dc=zone1,dc=scb,dc=net?cn
+LDAP authentication to SCB AD domain controller (zone1.scb.net)
+
+
+Infoblox RBAC
+Each subnet will have their ip-helper configured to the regional Infoblox for IP/DNS addressing. DHCP shd be enabled with boot options set to our matchbox server for PXE chainload.  This allows CoreOS to pick up rootfs/initramdisk, ignition/profile for CoreOS installation.
+dhcp-boot=tag:ipxe,http://matchbox.ocp.dev.net:8080/boot.ipxe  
+Network team is to provide a API account for us to programmatically assign IPAM. Permission must be granted for CRUD options for DHCP addressing and DNS forward/reverse zone setup for ocp.dev.net / k8s.dev.net. We'll progressively add subnets over time as the estate expands.
+Infoblox configuration
+This is a sample of how the "option 82" needs to be setup in Infoblox to allow next-boot and boot-file setup
+
+ 
+ 
+
+When your machine boots , it shd pick up a DHCP assigned ip as shown below
+
+ 
+
+Terraforming
+The provisioning an entire IPAM / DNS forward and reverse zone are done through terraform.
+(click on the source to see the animated gif of terraform)
+https://bitbucket.global.standardchartered.com/users/1358674/repos/sample-terraform-infoblox-openshift-installation/browse
+tanjer@wormhole[sample] $ 
+tanjer@wormhole[sample] $ terraform output
+apiserver_endpoint = [
+"api.dojo-west.ocp.dev.net IN A 10.198.252.3",
+"api.dojo-west.ocp.dev.net IN A 10.198.252.5",
+"api.dojo-west.ocp.dev.net IN A 10.198.252.7",
+]
+apps_wildcard = [
+"*.apps.dojo-west.ocp.dev.net IN A 10.198.252.6",
+"*.apps.dojo-west.ocp.dev.net IN A 10.198.252.4",
+]
+infra_masters_map = {
+"uklvadops114.dojo-west.ocp.dev.net" = "10.198.252.3/00:50:56:ac:97:8b"
+"uklvadops115.dojo-west.ocp.dev.net" = "10.198.252.5/00:50:56:ac:63:ad"
+"uklvadops116.dojo-west.ocp.dev.net" = "10.198.252.7/00:50:56:ac:6c:bc"
+}
+infra_workers_map = {
+"uklvadops117.dojo-west.ocp.dev.net" = "10.198.252.6/00:50:56:ac:57:39"
+"uklvadops118.dojo-west.ocp.dev.net" = "10.198.252.4/00:50:56:ac:2f:00"
+"uklvadops119.dojo-west.ocp.dev.net" = "10.198.252.12/00:50:56:ac:84:f1"
+"uklvadops120.dojo-west.ocp.dev.net" = "10.198.252.10/00:50:56:ac:92:9b"
+"uklvadops121.dojo-west.ocp.dev.net" = "10.198.252.11/00:50:56:ac:35:66"
+"uklvadops122.dojo-west.ocp.dev.net" = "10.198.252.9/00:50:56:ac:0b:49"
+"uklvadops123.dojo-west.ocp.dev.net" = "10.198.252.8/00:50:56:ac:4f:10"
+}
+
+As seen on infoblox console
+ 
