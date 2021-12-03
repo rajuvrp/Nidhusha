@@ -1,0 +1,55 @@
+PUT _template/small-indexes
+{
+"order": 1,
+"index_patterns": [
+"rdc-my-cemscvm*",
+"wma-bpa-simulation-prod*",
+"rdc-ae-cems*",
+"rdc-tw-cemscvm*",
+"rdc-hk-ptnr*",
+"rdc-glb-cemsctom*",
+"rdc-my-cems*",
+"rdc-mepa-cems*",
+"wma-dtcsg*",
+"rdc-hk-csl*",
+"cpbb-ame-csl-v4*",
+"rdc-lk-ibank*",
+"rdc-bn-ibank*",
+"rdc-ame-csl*",
+"hkmapns-prod*",
+"rdc-hk-onboarding*",
+"rdc-sg-api*",
+"rdc-id-cems*",
+"rdc-gbl-martech*",
+"rdc-cn-cems*",
+"rdc-ae-cemscvm*",
+"rdc-lms*",
+"rb-api-services-prd*",
+"rdc-asia-csl*",
+"rdc-gbl-gla*",
+"rdc-sg-cems*",
+"rdc-bh-ibank*",
+"rdc-gbl-ofp*",
+"rdc-cn-ibank*",
+"rdc-jo-ibank*",
+"rdc-id-ibank*",
+"rdc-ame-ob*",
+"cpbb-ame-ciam*",
+"rdc-ke-cems*",
+"rdc-sg-csl*",
+"rdc-gbl-inboundivr*",
+"rdc-np-ibank*",
+"cpbb-ame-ekg*",
+"wma-hk-pii*",
+"rdc-hk-openapi*",
+"rdc-hk-cems*",
+"rdc-bd-ibank*"
+],
+"settings": {
+"index": {
+ "number_of_shards": "1"
+ }
+ },
+ "mappings": {},
+ "aliases": {}
+ }
