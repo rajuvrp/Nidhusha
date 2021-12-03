@@ -1,0 +1,58 @@
+Query below to check all
+
+GET /_xpack/security/role_mapping
+
+Query below to check any previous roles assigned  
+
+GET /_xpack/security/role_mapping/rdc_hk_ibank
+
+Post below to update the Single Role 
+
+POST /_xpack/security/role_mapping/rdc_hk_ibank
+
+{
+
+"enabled" : true,
+"roles" : [
+"rdc_hk_ibank"
+],
+"rules" : {
+"field" : {
+"groups" : "CN=SUZ1-APP-WEBSSPRD-RWB-PSS,OU=Groups,OU=ITSC,DC=zone1,DC=scb,DC=net"
+}
+},
+"metadata" : { }
+}
+
+Post below to update the Multiple Roles
+
+{
+"enabled" : true,
+"roles" : [
+"rdc_hk_ibank"
+],
+"rules" : {
+"all" : [
+{
+"any" : [
+{
+"field" : {
+"groups" : "CN=SGZ1-User-VPNUser,OU=Resource,OU=Groups,OU=ITSC,DC=zone1,DC=scb,DC=net"
+}
+},
+{
+"field" : {
+"groups" : "CN=SUZ1-APP-WEBSSPRD-RWB-PSS,OU=Resource,OU=Groups,OU=ITSC,DC=zone1,DC=scb,DC=net"
+}
+}
+]
+}
+]
+},
+"metadata" : { }
+}
+
+
+-------------------------
+
+Ask the user who is facing challenge to invoke the URL https://10.21.214.202:9200/_xpack/security/_authenticate?pretty in the browser and authenticate using PSID / Password. Following output is expected, validate whether the user has got right roles and LDAP group.
